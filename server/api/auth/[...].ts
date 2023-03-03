@@ -1,11 +1,41 @@
-import CredentialsProvider from 'next-auth/providers/credentials'
-import GithubProvider from 'next-auth/providers/github'
-import { NuxtAuthHandler } from '#auth'
+import CredentialsProvider from "next-auth/providers/credentials";
+import { NuxtAuthHandler } from "#auth";
+const { authSecret } = useRuntimeConfig();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+import bcrypt from "bcrypt";
+
+const confirmPasswordHash = (plainPassword: string, hashedPassword: string) => {
+  return new Promise((resolve) => {
+    bcrypt.compare(plainPassword, hashedPassword, function (err, res) {
+      resolve(res);
+    });
+  });
+};
 
 export default NuxtAuthHandler({
+  secret: authSecret,
   pages: {
     // Change the default behavior to use `/login` as the path for the sign-in page
-    signIn: "/login",
+    signIn: "/",
+  },
+  callbacks: {
+    // Callback when the JWT is created / updated, see https://next-auth.js.org/configuration/callbacks#jwt-callback
+    jwt: async ({ token, user }) => {
+      const isSignIn = user ? true : false;
+      if (isSignIn) {
+        token.jwt = user ? (user as any).access_token || "" : "";
+        token.id = user ? user.id || "" : "";
+        token.role = user ? (user as any).role || "" : "";
+      }
+      return Promise.resolve(token);
+    },
+    // Callback whenever session is checked, see https://next-auth.js.org/configuration/callbacks#session-callback
+    session: async ({ session, token }) => {
+      (session as any).role = token.role;
+      (session as any).uid = token.id;
+      return Promise.resolve(session);
+    },
   },
   // TODO: ADD YOUR OWN AUTHENTICATION PROVIDER HERE, READ THE DOCS FOR MORE: https://sidebase.io/nuxt-auth
   providers: [
@@ -34,47 +64,96 @@ export default NuxtAuthHandler({
           placeholder: "(hint: hunter2)",
         },
       },
-      authorize(credentials: any) {
-        console.warn(
-          "ATTENTION: You should replace this with your real providers or credential provider logic! The current setup is not safe"
-        );
+      async authorize(credentials: any) {
+        // console.warn(
+        //   "ATTENTION: You should replace this with your real providers or credential provider logic! The current setup is not safe"
+        // );
         // You need to provide your own logic here that takes the credentials
         // submitted and returns either a object representing a user or value
         // that is false/null if the credentials are invalid.
         // NOTE: THE BELOW LOGIC IS NOT SAFE OR PROPER FOR AUTHENTICATION!
-
-        const user = {
-          id: "1",
-          name: "J Smith",
-          username: "jsmith",
-          password: "hunter2",
-        };
-        const adminUser = {
-          id: "2",
-          name: "admin222",
-          username: "jsmith",
-          password: "hunter2",
-        };
-        if (credentials != null){
-
-        
-        
+        if (credentials != null) {
           // Any object returned will be saved in `user` property of the JWT
-          if(credentials?.role === 'admin'){
-            if (
-              credentials?.username === adminUser.username &&
-              credentials?.password === adminUser.password
-            ) {
-              return adminUser;
+          if (credentials?.role === "admin") {
+            if (credentials?.email && credentials?.password) {
+              const adminUser = await prisma.admin.findUnique({
+                where: {
+                  email: credentials.email,
+                },
+              });
+
+              if (adminUser !== null) {
+                const res = await confirmPasswordHash(
+                  credentials.password,
+                  adminUser.password
+                );
+                const user = {
+                  id: adminUser.id,
+                  name: adminUser.name,
+                  role: "admin",
+                };
+                if (res === true) {
+                  return user;
+                } else {
+                  return null;
+                }
+              } else {
+                return null;
+              }
             }
-            } else {
-               if (
-              credentials?.username === user.username &&
-              credentials?.password === user.password
-            ) {
-              return user;
-            }}
-          
+          } else if (credentials?.role === "contributor") {
+            if (credentials?.email && credentials?.password) {
+              const contributorUser = await prisma.contributors.findUnique({
+                where: {
+                  email: credentials.email,
+                },
+              });
+              if (contributorUser !== null) {
+                const res = await confirmPasswordHash(
+                  credentials.password,
+                  contributorUser.password
+                );
+                  const user = {
+                    id: contributorUser.id,
+                    name: contributorUser.name,
+                    role: "contributor",
+                  };
+                if (res === true) {
+                  return user;
+                } else {
+                  return null;
+                }
+              } else {
+                return null;
+              }
+            }
+          } else {
+            if (credentials?.username && credentials?.password) {
+              const testTakerUser = await prisma.testTakers.findUnique({
+                where: {
+                  username: credentials.username,
+                },
+              });
+              if (testTakerUser !== null) {
+                const res = await confirmPasswordHash(
+                  credentials.password,
+                  testTakerUser.password
+                );
+                  const user = {
+                    id: testTakerUser.id,
+                    name: testTakerUser.name,
+                    role: "testtaker",
+                  };
+                if (res === true) {
+                  return user;
+                } else {
+                  return null;
+                }
+              } else {
+                return null;
+              }
+            }
+          }
         } else {
           console.error(
             "Warning: Malicious login attempt registered, bad credentials provided"
@@ -86,7 +165,6 @@ export default NuxtAuthHandler({
           // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
         }
       },
-      
     }),
   ],
 });

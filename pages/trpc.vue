@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'auth' })
+definePageMeta({ middleware: 'is-admin' })
 const { $client } = useNuxtApp()
 
 // const hello = await $client.hello.useQuery({ text: 'client' })

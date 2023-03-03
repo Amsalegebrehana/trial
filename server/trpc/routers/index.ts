@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { publicProcedure, router } from '../trpc'
+import { adminRouter } from './admin';
 import { poolRouter } from './pool';
 export const appRouter = router({
   hello: publicProcedure
@@ -14,7 +15,8 @@ export const appRouter = router({
         time: new Date(),
       };
     }),
-    pool: poolRouter
+    pool: poolRouter,
+    admin :adminRouter,
   
 });
 
