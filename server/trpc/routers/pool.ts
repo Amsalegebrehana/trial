@@ -1,9 +1,32 @@
 import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
+
 export const poolRouter = router({
-  getPools: publicProcedure.query(async ({ ctx, input }) => {
-    return await ctx.prisma.pool.findMany();
+  getPoolsCount: publicProcedure.query(async ({ ctx }) => {
+    return await ctx.prisma.pool.count();
   }),
+  getPools: publicProcedure
+    .input(
+      z.object({
+        skip: z.number(),
+        search: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.pool.findMany({
+        skip: input.skip,
+        take: 6,
+        orderBy: {
+          createdAt: "desc",
+        },
+        where: {
+          name: {
+            contains: input.search,
+          },
+        },
+      });
+    }),
+
 
   addPool: publicProcedure
     .input(

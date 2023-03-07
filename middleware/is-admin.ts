@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const nuxtApp = useNuxtApp();
 
   const { status, signIn, getSession } = useSession();
-    const res= await getSession();
+  const res= await getSession();
   // Return immeadiatly if user is already authenticated
   if (status.value === "authenticated" && res?.role === "admin") {
     return;
