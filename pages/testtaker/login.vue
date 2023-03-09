@@ -12,43 +12,46 @@
                 <img src="../../assets/images/undraw_Online_test_re_kyfx.png" class="m-6 mx-auto " />
             </div>
             <div class="w-1/2 h-full items-center align-middle my-auto ">
-                <div class="w-8/12 mt-44 justify-center mx-auto">
-
+                    <form @submit="onSubmit">
+                <div class="w-8/12 mt-32 justify-center mx-auto">
+            <span class="mt-5 text-red-500">{{ formError }}</span>
                     <div class="intro-x mt-8">
-                    
-                    
-                        <div class="input-group mt-4 w-96">
+         
+                    <span class="mt-5 text-red-500">{{ errors.admissionID }}</span>
+                        <div class="input-group my-2  w-96">
                             <div class="input-group-text">
                                 <Icon name="material-symbols:alternate-email" class="w-4 h-4"></Icon>
                             </div>
-                            <input type="text" class="form-control bg-slate-100" placeholder="Admission ID" v-model="userInfo.admissionID">
-                    
+                            <input  type="text" name="email"  class="form-control bg-slate-100" placeholder="Admission ID"  v-model="admissionID">
+                        
                         </div>
-                    
-                        <div class="input-group mt-4 w-96">
-                            <div class="input-group-text">
-                                <Icon name="material-symbols:alternate-email" class="w-4 h-4"></Icon>
-                            </div>
-                            <input :type="showPassword ? 'text' : 'password'" class="form-control bg-slate-100" placeholder="Password"
-                                v-model="userInfo.password">
+               
+                   <span class="mt-10 text-red-500">{{ errors.password }}</span>
+                        <div class="input-group mt-2  w-96" >
+                            <div class="input-group-text"><Icon name="material-symbols:alternate-email" class="w-4 h-4"></Icon></div>
+                            <input :type="showPassword ? 'text' : 'password'" class="form-control bg-slate-100" placeholder="Password"  v-model="password" :class="{ 'has-error': errors.password != undefined }"   >
+                        
                             <div v-on:click="togglePassword()" class="input-group-text">
                                 <Icon v-if="showPassword" name="ri:eye-line" class="w-4 h-4 text-slate-500"></Icon>
-                                <Icon v-else name="ri:eye-close-line" class="w-4 h-4 text-slate-500"></Icon>
-                            </div>
+                            <Icon v-else name="ri:eye-close-line" class="w-4 h-4 text-slate-500"></Icon>
                         </div>
                     
+                    </div>
+                
+
                     </div>
                     <!-- <div class="intro-x flex text-slate-600 dark:text-slate-500 text-xs sm:text-sm mt-4">
                     <div></div>
                     <a href="" class="ml-auto">Forgot Password?</a>
                 </div> -->
-
-
-                    <button @click="mySignInHandler({ username: userInfo.admissionID, password: userInfo.password, role: 'testtaker' })" class="bg-primary rounded-xl w-5/12 text-white py-3 px-4 text-center mt-8">
-                        Sign In
-                    </button>
-
+         
+                
+                        <button class="bg-primary rounded-xl w-5/12 text-white py-3 px-4 text-center mt-8">
+                            Sign In
+                        </button>
+              
                 </div>
+                </form>
 
             </div>
         </div>
@@ -57,24 +60,40 @@
     </div>
 </template>
 <script setup lang="ts">
+import { useField, useForm } from 'vee-validate';
+import { toFormValidator } from '@vee-validate/zod';
+import * as zod from 'zod';
 definePageMeta({ auth: false })
-const isLoading = ref(false);
-const _error = ref(null);
+const validationSchema = toFormValidator(
+    zod.object({
+        admissionID: zod.string().nonempty('This is required'),
+        password: zod.string().nonempty('This is required').min(8, { message: 'Minimum of 8 characters required' }),
+    })
+);
+const formError = ref('');
 const showPassword = ref(false);
 const togglePassword = () => {
     showPassword.value = !showPassword.value;
 };
-const userInfo = {
-    admissionID: '',
-    password: ''
-};
+const { handleSubmit, errors } = useForm({
+    validationSchema,
+    initialValues: {
+        admissionID: '',
+        password: '',
+    },
+},
+);
+const { value: admissionID } = useField('admissionID');
+const { value: password } = useField('password');
+const onSubmit = handleSubmit(values => {
 
+    mySignInHandler({ username: values.admissionID, password: values.password, role: 'testtaker' })
+});
 const { signIn } = useSession()
 const mySignInHandler = async ({ username, password, role }: { username: string, password: string, role: string }) => {
     const { error, url } = await signIn('credentials', { username, password, role, redirect: false, callbackUrl: 'http://localhost:3000/testtaker/exams/' })
     if (error) {
-        // TODO : error handling 
-        alert('You have made a terrible mistake while entering your credentials')
+        formError.value = "Incorrect credentials! Please try again";
     } else {
         return navigateTo(url, { external: true })
     }

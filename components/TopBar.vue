@@ -11,9 +11,9 @@
                     </div>
                     </NuxtLink>
                     <div class="flex flex-row items-center ml-auto">
-                       
+                          <NuxtLink :to="`/${role}/account`">
                             <img src="@/assets/images/prof.png" class="w-8 m-6" />
-              
+              </NuxtLink>
                   
             </div>
             </div>

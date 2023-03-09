@@ -39,7 +39,7 @@
               </label>
             </div>
           </div>
-          <NuxtLink :to="`${accountType}/login`">
+          <NuxtLink :to=" `${accountType}/login` ">
           <div class="mx-auto bg-primary rounded-xl w-3/12 text-xl text-white py-2 px-2 text-center mt-16">
              Continue
             </div>
@@ -49,6 +49,7 @@
 </template>
 
 <script>
+
 export default {
   name: 'SelectRole',
   components: {},

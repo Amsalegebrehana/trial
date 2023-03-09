@@ -2,10 +2,12 @@
 import AdminTopBar from '@/components/TopBar.vue'
 import AdminSideBar from '@/components/admin/AdminSideBar.vue'
 import { Pool } from '.prisma/client';
-
+import { Field, Form, ErrorMessage } from 'vee-validate';
+import { toFieldValidator } from '@vee-validate/zod';
+import * as zod from 'zod';
 definePageMeta({ middleware: 'is-admin' })
 const { $client } = useNuxtApp()
-
+const fieldSchema = toFieldValidator(zod.string().nonempty('Field is required').min(2, 'Minimum of 2 characters required'));
 const page = ref(1);
 const searchText  = ref('');
 const {data: count, refresh:fetchCount} = await useAsyncData( ()=> $client.pool.getPoolsCount.query());
@@ -35,14 +37,15 @@ const toggleAddModal = () => {
     showAddModal.value = !showAddModal.value;
 }
 const handleAddPool = async () => {
-    //TODO : form validation 
     isLoading.value = true;
     await $client.pool.addPool.mutate({name : poolInfo.value.name});
+    isReloading.value = true;
+    isLoading.value =false;
+    showAddModal.value = false;
     poolInfo.value.name = '';
     await fetchPools();
     await fetchCount();
-    isLoading.value =false;
-    showAddModal.value = false;
+    isReloading.value = false;
 }
 const toggleEditModal = () => {
     poolInfo.value.id = '';
@@ -61,12 +64,14 @@ const handleEditPool = async () => {
     //TODO : form validation 
     isLoading.value = true;
     await $client.pool.updatePool.mutate(poolInfo.value);
+    isReloading.value = true;
+    isLoading.value = false;
+    showEditModal.value = false;
     poolInfo.value.id = '';
     poolInfo.value.name = '';
     await fetchPools();
     await fetchCount();
-    isLoading.value = false;
-    showEditModal.value = false;
+    isReloading.value = false;
 }
 const toggleDeleteModal = () => {
     poolInfo.value.id = '';
@@ -85,12 +90,14 @@ const handleDeletePool = async () => {
     //TODO : form validation 
     isLoading.value = true;
     await $client.pool.deletePool.mutate({id :poolInfo.value.id});
+    isReloading.value = true;
+    isLoading.value = false;
+    showDeleteModal.value = false;
     poolInfo.value.id = '';
     poolInfo.value.name = '';
     await fetchPools();
     await fetchCount();
-    isLoading.value = false;
-    showDeleteModal.value = false;
+    isReloading.value = false;
 }
 </script>
 
@@ -231,9 +238,14 @@ const handleDeletePool = async () => {
                                 <div class="relative p-6 flex-auto">
                                 
                                     <div class="flex flex-row align-middle mt-2">
+                                        
                                         <p class="w-8/12 align-middle my-auto font-bold text-lg">Question pool Name</p>
-                                        <input type="text" class="intro-x login__input form-control py-3 px-4 block"  
-                                            placeholder="Enter Pool Name" v-model="poolInfo.name">
+                                     
+                                            <Form class="w-full">
+                                                <ErrorMessage name="addpoolInfoName" class=" text-red-500" />
+            <Field name="addpoolInfoName" type="text" class="intro-x login__input form-control py-3 block"  
+                                                    placeholder="Enter Pool Name" v-model="poolInfo.name" :rules="fieldSchema" />
+          </Form>
                                     </div>
                                 </div>
                                 <!--footer-->
@@ -278,8 +290,13 @@ const handleDeletePool = async () => {
                                 <div class="relative p-6 flex-auto">
                                     <div class="flex flex-row align-middle">
                                         <p class="w-8/12 align-middle my-auto font-bold text-lg">Question pool Name</p>
-                                        <input type="text" class="intro-x login__input form-control py-3 px-4 block"
-                                            placeholder="Enter Pool Name" v-model="poolInfo.name">
+                                          <Form class="w-full">
+                                                    <ErrorMessage name="editpoolInfoName" class=" text-red-500" />
+                <Field name="editpoolInfoName" type="text" class="intro-x login__input form-control py-3 block"  
+                                                        placeholder="Enter Pool Name" v-model="poolInfo.name" :rules="fieldSchema" />
+              </Form>
+                                        <!-- <input type="text" class="intro-x login__input form-control py-3 px-4 block"
+                                            placeholder="Enter Pool Name" v-model="poolInfo.name"> -->
                                     </div>
                                 </div>
                                 <!--footer-->
